@@ -32,9 +32,9 @@
 * Your own media center server _**JellyFin**_ - Watch your series and movies on any smart TV or device. Also when you leave the home via VPN.
 * Automatically follow and retrieve your favourite tv shows and movies _**Sonarr Radarr Bazarr QBittorrent**_ Because nobody can pay for every streaming service just to watch the few shows or movies they like. 
 * Pretty dashboards to monitor your server _**Grafana, Prometheus**_ - Not necessary, but handy and with notifications. 
-* Your own homepage to quickly access each service in a single webpage _**Organzir**_ See preview here. 
+* Your own homepage to quickly access each service in a single webpage _**Plugsy**_ [See preview here](https://github.com/plugsy/core). 
 
-For more details per service, [see here](https://github.com/zilexa/Homeserver/blob/master/Applications-Overview.md). 
+For more details per service, [see here](https://github.com/zilexa/Homeserver/blob/master/services-apps-configuration.md). 
 
 ***
 
@@ -52,7 +52,7 @@ Regardless of your hardware (x86-64 or ARM, see [Hardware Recommendations](Recom
 <sub>This guide used to be Ubuntu-based. All my laptops/PCs and my parents systems ran Ubuntu Budgie. After 2 years I switched to Manjaro (Gnome edition) and it is a delight!
 A much better **out-of-the-box experience**, more **user-friendly** (also for setting up a server! This is reflected in my scripts, they are a lot smaller)  **lightweight**, **small footprint**, much better and up to date single source of **high quality documentation (Arch Wiki)** and **MUCH easier to install applications + keep up to date** than any Ubuntu system. Also, better out-of-the-box BTRFS support. For small, flexible homeservers and personal laptops I strongly believe BTRFS is the best filesystem. If you have more needs, look at XFS/ZFS. This guide will use BTRFS. </sub>
 
-Step 0: get [the right hardware](Recommendations.md), most motherboards and CPUs are not designed for 24/7365 continuous running, instead, they are designed for performance. 
+Step 0: get [the right hardware](Recommendations.md), most motherboards and CPUs are not designed for 24/7/365 continuous running, instead, they are designed for performance. 
 
 ***
 
@@ -68,8 +68,8 @@ _Note_
 #### Step 1B. How to properly install Docker and essential tools?
 _Turn your system into a modern server with 1 click with [prep_server.sh](https://github.com/zilexa/Homeserver/blob/master/prep-server.sh) to automatically or manually install essential tools, apply basic configuration + required stuff for optional docker services._
 
-Read through the [prep_server.sh](https://github.com/zilexa/Homeserver/blob/master/prep-server.sh) and see what it does (everything has comments). 
-The PREP_DOCKER.SH script is carefully created to install the tools required to run all aspects of your server (from docker to mainentance tasks). \
+It is recommended to read through the [prep_server.sh](https://github.com/zilexa/Homeserver/blob/master/prep-server.sh) to get an idea what it does and why. 
+It has been carefully created to install the tools required to run all aspects of your server (from docker to mainentance tasks). \
 Official documentation is used to install tools correctly and all tools will be installed using the offical Manjaro package manager, a single package manager that keeps applications, OS and drivers up to date. 
 
 Download and install it via: 
@@ -86,15 +86,15 @@ _Note_
 
 ***
 
-### Step 2a and 2b - Filesystem configuration and datapools creation
+### Step 2 - Filesystems and Folderstructure
 This is the most time-consuming and complex part of creating your homeserver as there are many choices to be made, not just for your filesystem but also folderstructure. 
-1. [Learn about the easiest filesystem options for a homeserver](https://github.com/zilexa/Homeserver/blob/master/filesystem/FILESYSTEM-EXPLAINED.md) then:
-2. [Step 2a. Create Filesystems](https://github.com/zilexa/Homeserver/tree/master/filesystem). Understand your goal, make sane choices. 
-3. [Learn about Linux system folderstructure, standard subvolumes and tips for your folderstructure](https://github.com/zilexa/Homeserver/blob/master/filesystem/folderstructure-recommendations.md) then:
-4. [Step 2b. Create Datapool(s)](https://github.com/zilexa/Homeserver/blob/master/filesystem/create-datapools.md) 
+1. Check the [Filesystem Options](https://github.com/zilexa/Homeserver/tree/master/Filesystems-guide/Filesystems-options.md). Decide what is best for you. 
+2. Follow the [Filesystems Guide](https://github.com/zilexa/Homeserver/tree/master/Filesystems-guide)
+
+***
 
 ### Step 3. Data Migration
-[Data Migration](https://github.com/zilexa/Homeserver/blob/master/filesystem/data-migration.md) - Move files to your server data pool.
+[Data Migration](https://github.com/zilexa/Homeserver/blob/master/Filesystems-guide/Data-Migration.md) - Move files to your server data pool.
 
 ***
 
@@ -115,13 +115,14 @@ _Note:_
 ### Step 6 - Configure your apps & services
 The Docker guide (step 3) explains how to access your services. Configuring & using your services is not covered by this guide. 
 The overview of Docker applications below will contain some foldable sections with hints. 
-[Overview of Docker Apps](https://github.com/zilexa/Homeserver/blob/master/Applications-Overview.md) contains direct links to the documentation or homepage of each Docker app. 
+[Configure Apps & Services](https://github.com/zilexa/Homeserver/blob/master/services-apps-configuration.md) contains direct links to the documentation or homepage of each Docker app. 
 
 ***
 
 ### Step 7 - Configure & run Backups
-Decide what will be your [Backup Strategy](https://github.com/zilexa/Homeserver/blob/master/backup-strategy/backupstrategy.md) and use the [Server Backup Guide](https://github.com/zilexa/Homeserver/tree/master/backup-strategy) to leverage the BTRFS filesystem to backup your @, @home, @docker subvolumes and your data subvolumes easily, while also having a timeline/timemachine snapshots of your data. 
+Critical to enjoy the benefits of hosting your own server is the reliability of data storage and the ability to quickly recover a system (simply using your docker folder containing the folders you mount into containers). Follow the [Backup Guide](https://github.com/zilexa/Homeserver/tree/master/Backups-guide).
 
-### Step 8 - Maintenance Tasks & Scheduling
-Nightly [maintenance](https://github.com/zilexa/Homeserver/tree/master/maintenance-tasks) of your server such as cleanup, backup and disks protection tasks. 
+***
 
+### Step 8 - Automatic Maintenance and optional manual maintenance
+To keep your server purring quietly, without having to spend much or any time keeping it running, follow the [Maintenance Guide](https://github.com/zilexa/Homeserver/tree/master/Maintenance-guide) for regular cleanup, updates of server and docker images and filesystem/drive maintenance. 

@@ -2,6 +2,10 @@
 
 ## Wrapper script running "btrbk" and sending email with results
 
+# create tempfile to indicate backup tasks are running, preventing Monthly from kicking off its tasks simultanuously
+touch /tmp/running-backups
+
+
 now=$(date +%Y%m%d)
 
 #####  start config section  #####
@@ -44,8 +48,9 @@ mount_targets="/mnt/drives/system /mnt/drives/data1 /mnt/drives/backup1"
 #sync_fs=("/mnt/btr_data" "/mnt/btr_pool")
 
 # btrbk command / options:
-btrbk_command="run"
-btrbk_opts="-c /etc/btrbk/btrbk.conf"
+btrbk_command1="snapshot"
+btrbk_command2="resume"
+btrbk_opts=" -t --pretty -c /etc/btrbk/btrbk.conf"
 
 
 ### Layout options:
@@ -61,7 +66,7 @@ mail_cmd_block_prefix='\\u200B' # zero-width whitespace
 
 check_options()
 {
-    [[ -n "$btrbk_command" ]] || die "btrbk_command is not set"
+    [[ -n "$btrbk_command1" ]] || die "btrbk_command is not set"
     for key in $rsync_enable; do
         [[ -n "${rsync_src[$key]}" ]] || die "rsync_src is not set for \"$key\""
         [[ -n "${rsync_dst[$key]}" ]] || die "rsync_dst is not set for \"$key\""
@@ -157,7 +162,7 @@ mount_all()
         ebegin "Mounting $mountpoint"
         run_cmd findmnt -n $mountpoint
         if [[ $? -eq 0 ]]; then
-            eend -1 "already mounted"
+            mounted+=" $mountpoint"
         else
             detail+="\n"
             run_cmd mount --target $mountpoint
@@ -252,8 +257,34 @@ fi
 #
 # run btrbk
 #
-ebegin "Running btrbk"
-run_cmd btrbk ${btrbk_opts:-} ${btrbk_command}
+
+# Stop docker containers to prevent data corruption in snapshots
+echo "Stop containers to prevent data being written while snapshotting"
+
+
+ebegin "Running btrbk snapshots"
+# Stop services, to prevent data corruption in snapshots
+echo "Stop containers to prevent data being written while snapshotting"
+su -l ${LOGUSER} -c 'docker-compose stop'
+run_cmd btrbk ${btrbk_opts:-} ${btrbk_command1}
+exitcode=$?
+case $exitcode in
+    0)  status=" succesfully snapshotted all subvolumes"
+        ;;
+    3)  status="Another instance of btrbk is running, no snapshots created!"
+        ;;
+    10) status="At least one snapshot task aborted!"
+         ;;
+    *)  status="btrbk failed with error code $exitcode"
+        ;;
+esac
+# Restart services
+su -l ${LOGUSER} -c 'docker-compose start'
+eend $exitcode "$status"
+
+
+ebegin "Running btrbk backups"
+run_cmd btrbk ${btrbk_opts:-} ${btrbk_command2}
 exitcode=$?
 case $exitcode in
     0)  status=" succesfully backupped all subvolumes"
@@ -267,5 +298,10 @@ case $exitcode in
 esac
 eend $exitcode "$status"
 
+
 umount_mounted
 send_mail
+
+
+# Delete temp file, follow up tasks like Monthly can continue
+rm /tmp/running-backups

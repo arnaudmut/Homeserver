@@ -48,8 +48,10 @@ _Your own recursive DNS server to stop sharing your browsing history with the wo
 >This setup can also be used used remotely via split tunnel VPN (see PiVPN). This means you have 1 adfiltering and DNS resolver for all devices, anywhere in the world.
 - Required configuration: 
   - walkthrough the first time wizard at http://serverip:3000
+  - **Settings>General Settings**: Disable "Use Adguard Browsing Security Service", this will sent every request to Adguard. Makes no sense and slows down. 
   - **Settings>DNS Settings**: Upstream DNS servers should only contain your unbound service: `127.0.0.1:5335`
-  - **Filters>DNS blocklists**: click Add blocklist, select `OISD Blocklist Basic`, hit save, then uncheck others and only check `OISD Blocklist Basic`. 
+  - **Filters>DNS blocklists**: click "Add blocklist">"Choose from the list" select `OISD Blocklist Full`, hit save, then uncheck others and only check `OISD Blocklist Full`. 
+  - **Filters>DNS blocklists**: click "Add blocklist">"Add a custom list", in a new browser tab go to https://gitlab.com/malware-filter/urlhaus-filter#url-based-adguard and find the "URL-based (AdGuard) Lite" list, copy that URL, paste it into Adguard and give it a name `URLHaus malware filter`, save and make sure to select it to be active. You now have 2 of the best filters. If they block too much, switch to OISD Lite instead of Full. 
   - **Filters>DNS Rewrites**: Add DNS rewrites for each local (not online exposed) service you want to access via a local domain instead of having to type ip:port all the time. For example, add `docker.o`, `192.168.88.2` to access Portainer by going to `http://docker.o/`, if your server lan IP is 192.168.88.2, and do the same for example for `vpn.o` to access the Wireguard Portal where you will manage VPN clients, `jellyfin.o` to access you media etc. 
     - Browsers convert addressess automatically to HTTPS. Disable this in your browser security settings. Type a `/` at the end of the address (if that's not enough also add `http://` in front of it) to force it to use http instead. HTTPS TLS encryption is not necessary (and more work to setup for local services) since these domains only work within your LAN (or via VPN which is already encrypted).  
     - For services (like Adguard Home!) using `network_mode: host` in docker-compose, this works only when accessing the domain on other devices within your LAN. To access such services in a browser on your host system, add the domain in the `/etc/hosts` file of your server.
@@ -85,9 +87,9 @@ _Server configuration_
 - To automatically apply changes made via VPN-Portal, Wireguard needs to be restarted when the `wg0.conf` file is modified by VPN-Portal. File monitoring and restarting is done via 2 services created by the `prep-server.sh` script. All you have to to is enable & start them: : `systemctl enable wgui.{path,service}` and `systemctl start wgui.{path,service}`. This will run `sudo systemctl restart wg-quick@wg0.service` when the `wg0.conf` file is modified.
 
 _Client configuration_ 
-- You can easily ensure Android devices are always using your server DNS (and have access to all local non-exposed services!) by installing [the Wireguard app](https://play.google.com/store/apps/details?id=com.wireguard.android), adding the configuration through QR code or file, which you can share via the `VPN-Portal` via email to your devices Portal. 
-- To automatically connect to your VPN when you leave your home WiFi and disconnect when you are back home, install the [Automate](https://play.google.com/store/apps/details?id=com.llamalab.automate) app, go to Community and find and install this [flow](https://llamalab.com/automate/community/flows/39377). Follow the instructions in the description. This is tested to work flawlessly on Android 12 devices!  
-- Wireguard apps are available for all systems. For Linux, install `wireguard-tools` and use the command `wg-quik up wg0` after you have put the client conf file (accessible via the VPN-Portal) in `/etc/wireguard/`. 
+- Wireguard apps are available for all systems. For Linux, install `wireguard-tools` and use the command `wg-quick up wg0` after you have put the client conf file (accessible via the VPN-Portal) in `/etc/wireguard/`. More user-friendly, Linux with Gnome UI support Wireguard out-of-the box via Settings > Network. 
+- You can easily ensure Android devices are always using your server DNS (and have access to all local non-exposed services!) by installing [WG-Tunnel](https://play.google.com/store/apps/details?id=com.zaneschepke.wireguardautotunnel), adding the configuration through QR code or file, which you can share via the `VPN-Portal` via email to your devices Portal. [WG-Tunnel](https://github.com/zaneschepke/wgtunnel) is amazing. It uses the same base as the official Wireguard app, but allows you to automatically connect to your VPN (DNS-traffic only) when you leave your home WiFi and disconnect when you are back home! Set up once and forget!
+- WG Tunnel also works on AndroidTV, allowing you to share your Nexflix subscription through your VPN server, by simply having them install the app on their AndroidTV. After importing the client config file all they have to do is go into its settings ("edit") and apply the tunnel to "included apps" only, selecting Netflix. Easy!
 
 ### _Remote Admin Access_ via RDP and SSH
 > You can manage your server remotely, within LAN or, when not at home via VPN. This can be done through the terminal or simply by accessing the desktop, by sharing the desktop through RDP. 
@@ -118,9 +120,10 @@ _Client configuration_
 > - FileRun is a very fast, lightweight and feature-rich selfhosted alternative to Dropbox/GoogleDrive/OneDrive. Nextcloud, being much slower and overloaded with additional apps, can't compete on speed and user-friendliness. Also, with FileRun each user has a dedicated folder on your server and unlike Nextcloud, FileRun does not need to periodically scan your filesystem for changes.
 > - FileRun support WebDAV, ElasticSeach for in-file search, extremely fast scrolling through large photo albums, encryption, guest users, shortened sharing links etc.
 >Limits compared to Nextcloud: It is not open-source and the free version allows 10 users only. I use it for myself and direct family/friends only. It has no calendar/contacts/calls etc features like Nextcloud.
-- Required configuration: walk through the Control Panel and personalize at will. 
-- In `Thumbs and Previews` enable all options except LibreOffice and hit "Check version", output should be green. 
+- Required configuration: 
+- walk through the Control Panel and personalize at will. 
 - In `Plugins`, enable what you need, disable overlapping stuff that you do not need. In `defaults` it is recommended to use `Office web viewer` for Office documents instead of alternatives.
+- In `E-mail` disable "instant notifications" to prevent users from being flooded with hundreds of emails when shared files are being downloaded. See [Maintenance & Scheduling](https://github.com/zilexa/Homeserver/tree/master/maintenance-tasks#step-6-schedule-nightly-and-monthly), cron will be used to sent notifications every 5min. 
 - OnlyOffice DocumentServer unfortunately does not work properly, otherwise you could configure OnlyOffice as default to edit office documents (having your own google docs/office online alternative!). 
 
 **How to sync devices, external users laptops**
@@ -131,17 +134,30 @@ _Client configuration_
 > - The Nextcloud mobile app works with FileRun but CX File Explorer (4.8 stars) is so much better and easier to use. It is a swift and friendly Android file manager that allows you to add your FileRun instance via WebDAV. Compared to the Nextcloud app, it allows you to easily switch between your local storage and your cloud, copying files betweeen them.
 > - Alternatively, [Setup NFS](https://github.com/zilexa/Homeserver/tree/master/network%20share%20(NFSv4.2)) a zero-overhead solution used in datacenters, the fastest way to share files/folders with other devices (laptops/PCs) via your local home network.
 
-\
-_Your own browser sync engine via Firefox Sync - [documentation](https://github.com/mozilla-services/syncserver)_
+### _Your own browser sync engine via Firefox Sync - [documentation](https://github.com/mozilla-services/syncserver)_
 >By running your own Firefox Sync server, all your history, bookmarks, cookies, logins of Firefox on all your devices (phones, tablets, laptops) can be synced with your own server instead of Mozilla.\
 >Compare this to Google Chrome syncing to your Google Account or Safari syncing to iCloud. It also means you have a backup of your browser profile. This tool has been provided by Mozilla. This is the only browser that allows you to use your own server to sync your browser account!
 - Required Configuration: 
   - Test your sync server is running properly by visiting the subdomain `firefox.yourdomain.tld`. 
   - by default, new accounts cannot register to your server. You can control this in your docker-compose file via `FF_SYNCSERVER_ALLOW_NEW_USERS:` make sure to set it to false after all users have registered, to prevent strangers from using your sync server. 
 
-\
-_Paper document management [Paperless](https://github.com/jonaswinkler/paperless-ng)_
->Scan files and auto-organise for your administration archive with a webUI to see and manage them. [Background](https://blog.kilian.io/paperless/) of Paperless. No more paper archives!
+### _Remote Desktop Web Client [Guacamole](https://github.com/MaxWaldorf/guacamole)_
+>Access any desktop (your server or your parents laptop) through RDP via your browser (mobile browsers supported as well) after connecting to VPN.  \
+>Instead of using an app, you can simply go to https://remote.yourdomain.com and use the web application to login to the desktop of any server/desktop/laptop that has RDP configured.  \
+>You still need to be connected to your server VPN.  \
+>You can connect all computers that you want to support (like, parents) to your server VPN. Then, when they need help, you simply open a browser, login to Guacamole to see and use their desktop.  
+
+- Decide whether you need the web client, since you can just as well use desktop applications (Remmina on Linux, Mac and Android, Windows RDP in Windows 10/11). 
+- If you do need it, decide whether or not you want to expose the client to the internet or only access the client through LAN and VPN. Remember, to actually connect to your server you will need to connect to VPN anyway. 
+  - Since 18/07/2022 the docker-compose.yml example exposes it by default + enables 2FA for this web app. 
+  - If you do not want to expose it, remove the 2 caddy labels (or replace them for local proxy, to access via http://remote.o/ within your LAN/VPN) and remove the `TOTP` in the Extensions section. 
+
+How to Configure Guacamole?
+- login with guacadmin/guacadmin. 
+- Find Settings in the top-right menu, _Settings > Users > New User_ and create a user for yourself.
+- Logout, login with your own user, go back to _Settings > Users_ and delete user guacadmin.
+- _Settings > Connections > New Connection:_ Name = your server name, protocol = RDP, Concurrency limits = 1, 
+- Section _Parameters > Network_ fill in hostname (= a LAN hostname that you created in AdGuard or LAN IP or VPN IP), Port = 3389. Under _Authentication_ your server RDP username/password. Hit Save. 
 
 ## _Media Server_
 ### _[Qbittorrent](https://hotio.dev/containers/qbittorrent/)_ through VPN-proxy via PIA Wireguard VPN - [documentation](https://hub.docker.com/r/thrnz/docker-wireguard-pia)_ 
@@ -154,7 +170,7 @@ _Paper document management [Paperless](https://github.com/jonaswinkler/paperless
 _Series/Movies/Subtitles/Music via Sonarr/Radarr/Bazarr/Lidarr and torrentsites proxy Prowlarr - [Documentation](https://wiki.servarr.com/Docker_Guide)_
 >A visual, user-friendly tool allowing you to search & add your favourite TV shows (Sonarr) or Movies (Radarr) and subtitles (Bazarr), see a schedule of when the next episodes will air and completely take care of obtaining the requires files (by searching magnets/torrents via Jackett, a proxy for all torrentsites) and organising them, all in order to get a full-blown Nextflix experience served by JellyFin.| For years I have messed with FlexGet, but it can't beat Sonarr.   
 - [BLACK app for Android](https://play.google.com/store/apps/details?id=com.advice.drone): all-in-1 app allows you to perform most popular actions in your "\*arr" apps.
-- [NZB360 app for Android](https://play.google.com/store/apps/details?id=com.advice.drone): all-in-1 app allows you to discover new content, find/add/remove content, view status and manage all your "\*arr" services and downloads in 1 single app. User friendly and completely replaces the need to access your web apps. 
+- [NZB360 app for Android](https://play.google.com/store/apps/details?id=com.kevinforeman.nzb360): all-in-1 app allows you to discover new content, find/add/remove content, view status and manage all your "\*arr" services and downloads in 1 single app. User friendly and completely replaces the need to access your web apps. 
 
 \
 _Media server via Jellyfin - [documentation](https://jellyfin.org/)_

@@ -4,10 +4,10 @@ To migrate data to your pool `/mnt/pool/` it is best and fastest to use `btrfs s
 ***
 
 ### From any drive or folder, regardless of filesystem 
-- _Moving files and folders from one drive to the other_  \
+- _Copying files and folders from one drive to the other_  \
   You want to make sure files are correctly read and written, without read or write errors. For that, we have rsync. If you are copying lots of data while doing other activities, make sure to append `nocache`: 
   ```
-  nocache rsync -axHAXE --info=progress2 --inplace --no-whole-file --numeric-ids  /media/my/usb/drive/ /mnt/pool-nocache
+  nocache rsync -axHAXES --info=progress2 --preallocate --inplace --numeric-ids /mnt/drives/cache/users/ /mnt/pool-nocache/users/
   ```
 - _Moving files and folders to another folder on the same drive_ \
   The `mv` command is used to move or rename folders. But it doesn't include hidden files. This way it does:
@@ -36,11 +36,12 @@ After you have verified the data, you can then delete the read-only snapshot usi
 
 ***
 
-### Verify your copied data!
-Highly recommended for precious data to double-check all data is really identical to the source. 
-- Fast method:
+### Verify your copied data
+This is overkill and paranoia: btrfs has checksums build in. Rsync will verify checksums twice: a 2nd time after data is written (btrfs send/receive won't do that).  
+But for very precious data to double-check all data is really identical to the source. 
+- Fast method (only shows output if a difference is found):
   ```
-  diff -qrs /source/otherfolder/snapshot/ /destination/folder/snapshot/
+  diff -qr /source/otherfolder/snapshot/ /destination/folder/snapshot/
   ```
 - Checksum based (slower):
   ```
@@ -52,13 +53,19 @@ Highly recommended for precious data to double-check all data is really identica
 
 ### Fix ownership and permissions
 When you created subvolumes (usually with `sudo`) and mountpoints (also with `sudo`) and played with moving snapshots around, you noticed you can only create, copy or move data in there with sudo?
-This is normal, but you do need to fix the ownership and permissions before you can use your data normally, without sudo. To do so: 
+This is normal, but you do need to fix the ownership and permissions before you can use your data normally, without sudo. 
+--> I highly recommend to leave the top folders (`users` and `media`) owned by root so you or an application cannot delete those. Instead, apply the following to each folder inside those folders seperately. To do so: 
 - ownership, notice you need to add (D) to also apply this change to hidden files/folders: 
   ```
-  sudo chown -R ${USER}:${USER} /mnt/pool/users/usernameX(D)
-  ```
+  sudo chown -R ${USER}:${USER} /mnt/pool/users/name(D)
+  ``` 
+  Only change `name` and apply to command to each folder inside `users`. 
 - permissions: 
   ```
-  sudo chmod -R 755 /mnt/pool/users/usernameX(D)
+  sudo chmod -R 755 /mnt/pool/users/name(D)
   ```
-And do the same for your Media path: `/mnt/pool/media(D)`.   
+  Only change `name` and apply to command to each folder inside `users`. 
+
+And do the same for your Media path: `/mnt/pool/media(D)`.
+
+I highly recommend reading [this intro into Linux permissions](https://wise.wtf/posts/beginner-bits-linux-permissions/). this will fill the knowlegde gap that will otherwise come back and bite you. 
